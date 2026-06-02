@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Menus Print Bridge</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f5f5f5; color: #212529; font-size: 14px;
+  }
+  .header {
+    background: #1a7a4c; color: #fff;
+    padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .header h1 { font-size: 1.1rem; font-weight: 700; }
+  .header p  { font-size: 0.8rem; opacity: 0.8; margin-top: 2px; }
+  /* custom lang dropdown */
+  .lang-dd { position: relative; }
+  .lang-btn {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.15); color: #fff;
+    border: 1.5px solid rgba(255,255,255,0.4); border-radius: 8px;
+    padding: 6px 10px; font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; user-select: none; white-space: nowrap;
+  }
+  .lang-btn:hover { background: rgba(255,255,255,0.25); }
+  .lang-chevron { font-size: 0.6rem; opacity: 0.8; margin-left: 2px; }
+  .lang-menu {
+    display: none; position: absolute; top: calc(100% + 6px); right: 0;
+    background: #fff; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    overflow: hidden; z-index: 100; min-width: 140px;
+  }
+  .lang-menu.open { display: block; }
+  .lang-opt {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 14px; cursor: pointer; font-size: 0.85rem;
+    font-weight: 600; color: #212529;
+  }
+  .lang-opt:hover { background: #f0fdf4; color: #1a7a4c; }
+  .lang-opt.active { color: #1a7a4c; }
+  .lang-flag { width: 20px; height: 14px; border-radius: 2px; object-fit: cover; flex-shrink: 0; }
+  .lang-flag-svg { width: 20px; height: 14px; border-radius: 2px; display: block; flex-shrink: 0; }
+  .body { padding: 24px; display: flex; flex-direction: column; gap: 18px; }
+
+  .field label {
+    display: block; font-size: 0.75rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .4px; color: #555; margin-bottom: 6px;
+  }
+  .field input, .field select {
+    width: 100%; padding: 10px 12px; border: 1.5px solid #dee2e6;
+    border-radius: 8px; font-size: 0.9rem; background: #fff; outline: none;
+    transition: border-color .15s;
+  }
+  .field input:focus, .field select:focus { border-color: #1a7a4c; }
+  .field .hint { font-size: 0.75rem; color: #888; margin-top: 5px; }
+
+  .status {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+  }
+  .status.ok   { background: #d1e7dd; color: #0f5132; }
+  .status.err  { background: #fce8e8; color: #b91c1c; }
+  .status.idle { background: #f0f0f0; color: #555; }
+
+  .btn-row { display: flex; gap: 10px; }
+  button {
+    flex: 1; padding: 11px; border: none; border-radius: 8px;
+    font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: opacity .15s;
+  }
+  button:hover { opacity: 0.88; }
+  .btn-primary   { background: #1a7a4c; color: #fff; }
+  .btn-secondary { background: #e9ecef; color: #212529; }
+
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .dot-green { background: #1a7a4c; }
+  .dot-red   { background: #b91c1c; }
+  .dot-grey  { background: #aaa; }
+
+  /* printer type toggle */
+  .type-toggle { display: flex; border: 1.5px solid #dee2e6; border-radius: 8px; overflow: hidden; }
+  .type-btn {
+    flex: 1; padding: 9px 10px; border: none; background: #fff;
+    font-size: 0.82rem; font-weight: 600; color: #6c757d; cursor: pointer;
+    transition: background .15s, color .15s; text-align: center;
+  }
+  .type-btn.active { background: #1a7a4c; color: #fff; }
+  .type-btn:first-child { border-right: 1.5px solid #dee2e6; }
+
+  .ip-row { display: flex; gap: 10px; }
+  .ip-row .field { flex: 1; }
+  .ip-row .field.port { flex: 0 0 90px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>🖨️ Menus Print Bridge</h1>
+    <p id="hdr-sub">Automatically print orders from all sources</p>
+  </div>
+  <div class="lang-dd" id="lang-dd">
+    <div class="lang-btn" onclick="toggleLangMenu()">
+      <span id="lang-btn-flag"></span>
+      <span id="lang-btn-label">EN</span>
+      <span class="lang-chevron">▼</span>
+    </div>
+    <div class="lang-menu" id="lang-menu"></div>
+  </div>
+</div>
+
+<div class="body">
+
+  <div id="status-bar" class="status idle">
+    <span class="dot dot-grey" id="dot"></span>
+    <span id="status-text">Not configured</span>
+  </div>
+
+
+  <div class="field">
+    <label id="lbl-token">Print Token</label>
+    <input type="password" id="token" placeholder="…">
+    <div class="hint" id="lbl-token-hint">Find this in your Menus dashboard → Mobile App → Print Bridge</div>
+  </div>
+
+  <div class="field">
+    <label id="lbl-printer-type">Printer type</label>
+    <div class="type-toggle">
+      <button class="type-btn active" id="btn-type-system" onclick="setPrinterType('system')" id="lbl-type-system">🖨 System printer</button>
+      <button class="type-btn"        id="btn-type-thermal" onclick="setPrinterType('thermal')">🧾 Thermal (ESC/POS)</button>
+    </div>
+  </div>
+
+  <div id="system-fields">
+    <div class="field">
+      <label id="lbl-printer">Printer</label>
+      <select id="printer">
+        <option value="" id="lbl-default-printer">System default printer</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="thermal-fields" style="display:none;">
+    <div class="ip-row">
+      <div class="field">
+        <label id="lbl-thermal-ip">Printer IP address</label>
+        <input type="text" id="thermalIp" placeholder="192.168.1.100">
+      </div>
+      <div class="field port">
+        <label id="lbl-thermal-port">Port</label>
+        <input type="number" id="thermalPort" value="9100" min="1" max="65535">
+      </div>
+    </div>
+    <div class="field">
+      <div class="hint" id="lbl-thermal-hint">Connect your thermal printer via Ethernet or WiFi. Default port is 9100.</div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label id="lbl-width">Paper width</label>
+    <select id="cols">
+      <option value="32">58mm — narrow thermal (32 chars)</option>
+      <option value="48" selected>80mm — standard thermal (48 chars)</option>
+      <option value="64">Full page (64 chars)</option>
+    </select>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn-secondary" id="btn-test" onclick="testPrint()">Test print</button>
+    <button class="btn-primary"   id="btn-save" onclick="save()">Save &amp; start</button>
+  </div>
+
+</div>
+
+<script>
+const { ipcRenderer } = require('electron');
+
+const UI = {
+  en: {
+    sub: 'Automatically print orders from all sources',
+    server: 'Server', token: 'Print Token',
+    tokenHint: 'Find this in your Menus dashboard → Mobile App → Print Bridge',
+    printerType: 'Printer type', thermalIp: 'Printer IP address', thermalPort: 'Port',
+    thermalHint: 'Connect your thermal printer via Ethernet or WiFi. Default port is 9100.',
+    printer: 'Printer', defaultPrinter: 'System default printer',
+    width: 'Paper width', test: 'Test print', save: 'Save & start',
+    notConfigured: 'Not configured', running: 'Bridge running — polling for orders',
+    noToken: 'Please enter your print token',
+    testOk: 'Test page sent to printer ✓', testFail: 'Print failed: ',
+  },
+  es: {
+    sub: 'Imprime pedidos automáticamente de todas las fuentes',
+    server: 'Servidor', token: 'Token de impresión',
+    tokenHint: 'Encuéntralo en tu panel de Menus → App Móvil → Puente de impresión',
+    printer: 'Impresora', defaultPrinter: 'Impresora predeterminada del sistema',
+    width: 'Ancho del papel', test: 'Página de prueba', save: 'Guardar e iniciar',
+    notConfigured: 'No configurado', running: 'Puente activo — buscando pedidos',
+    noToken: 'Por favor ingresa tu token de impresión',
+    testOk: 'Página de prueba enviada a la impresora ✓', testFail: 'Error al imprimir: ',
+  },
+  pt: {
+    sub: 'Imprime pedidos automaticamente de todas as fontes',
+    server: 'Servidor', token: 'Token de impressão',
+    tokenHint: 'Encontre no seu painel Menus → App Mobile → Bridge de impressão',
+    printer: 'Impressora', defaultPrinter: 'Impressora padrão do sistema',
+    width: 'Largura do papel', test: 'Página de teste', save: 'Salvar e iniciar',
+    notConfigured: 'Não configurado', running: 'Bridge ativo — buscando pedidos',
+    noToken: 'Por favor insira seu token de impressão',
+    testOk: 'Página de teste enviada à impressora ✓', testFail: 'Falha ao imprimir: ',
+  },
+  fr: {
+    sub: 'Imprime automatiquement les commandes de toutes les sources',
+    server: 'Serveur', token: "Token d'impression",
+    tokenHint: 'Trouvez-le dans votre tableau de bord Menus → App Mobile → Pont d\'impression',
+    printer: 'Imprimante', defaultPrinter: 'Imprimante par défaut du système',
+    width: 'Largeur du papier', test: 'Page de test', save: 'Enregistrer et démarrer',
+    notConfigured: 'Non configuré', running: 'Pont actif — recherche de commandes',
+    noToken: "Veuillez entrer votre token d'impression",
+    testOk: 'Page de test envoyée à l\'imprimante ✓', testFail: 'Échec impression: ',
+  },
+  de: {
+    sub: 'Bestellungen automatisch aus allen Quellen drucken',
+    server: 'Server', token: 'Drucktoken',
+    tokenHint: 'Im Menus-Dashboard → Mobile App → Druckbrücke zu finden',
+    printer: 'Drucker', defaultPrinter: 'Systemstandarddrucker',
+    width: 'Papierbreite', test: 'Testdruck', save: 'Speichern & starten',
+    notConfigured: 'Nicht konfiguriert', running: 'Brücke aktiv — sucht nach Bestellungen',
+    noToken: 'Bitte Drucktoken eingeben',
+    testOk: 'Testseite an Drucker gesendet ✓', testFail: 'Druckfehler: ',
+  },
+  ca: {
+    sub: "Imprimeix automàticament les comandes de totes les fonts",
+    server: 'Servidor', token: "Token d'impressió",
+    tokenHint: "Troba'l al teu tauler de Menus → App Mòbil → Pont d'impressió",
+    printer: 'Impressora', defaultPrinter: 'Impressora predeterminada del sistema',
+    width: 'Amplada del paper', test: 'Pàgina de prova', save: 'Desar i iniciar',
+    notConfigured: 'No configurat', running: 'Pont actiu — buscant comandes',
+    noToken: "Si us plau, introdueix el token d'impressió",
+    testOk: "Pàgina de prova enviada a la impressora ✓", testFail: "Error d'impressió: ",
+  },
+  ar: {
+    sub: 'طباعة الطلبات تلقائياً من جميع المصادر',
+    server: 'الخادم', token: 'رمز الطباعة',
+    tokenHint: 'ابحث عنه في لوحة التحكم → تطبيق الجوال → جسر الطباعة',
+    printer: 'الطابعة', defaultPrinter: 'الطابعة الافتراضية للنظام',
+    width: 'عرض الورق', test: 'طباعة تجريبية', save: 'حفظ وبدء',
+    notConfigured: 'غير مُهيأ', running: 'الجسر يعمل — يبحث عن طلبات',
+    noToken: 'يرجى إدخال رمز الطباعة',
+    testOk: 'تم إرسال الصفحة التجريبية ✓', testFail: 'فشل الطباعة: ',
+  },
+  zh: {
+    sub: '自动从所有来源打印订单',
+    server: '服务器', token: '打印令牌',
+    tokenHint: '在 Menus 控制台 → 移动应用 → 打印桥 中找到',
+    printer: '打印机', defaultPrinter: '系统默认打印机',
+    width: '纸张宽度', test: '测试打印', save: '保存并启动',
+    notConfigured: '未配置', running: '桥接运行中 — 轮询订单',
+    noToken: '请输入您的打印令牌',
+    testOk: '测试页已发送到打印机 ✓', testFail: '打印失败: ',
+  },
+};
+
+const LANGS = [
+  { code: 'en', label: 'EN', flag: '🇬🇧' },
+  { code: 'ar', label: 'AR', flag: '🇸🇦' },
+  { code: 'ca', label: 'CA', flag: null },
+  { code: 'de', label: 'DE', flag: '🇩🇪' },
+  { code: 'es', label: 'ES', flag: '🇪🇸' },
+  { code: 'fr', label: 'FR', flag: '🇫🇷' },
+  { code: 'pt', label: 'PT', flag: '🇧🇷' },
+  { code: 'zh', label: 'ZH', flag: '🇨🇳' },
+];
+
+const CA_FLAG_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 9 6" class="lang-flag-svg">
+  <rect width="9" height="6" fill="#FCDD09"/>
+  <rect y="0.6667" width="9" height="0.6667" fill="#DA121A"/>
+  <rect y="2" width="9" height="0.6667" fill="#DA121A"/>
+  <rect y="3.3333" width="9" height="0.6667" fill="#DA121A"/>
+  <rect y="4.6667" width="9" height="0.6667" fill="#DA121A"/>
+</svg>`;
+
+function flagHTML(lang) {
+  return lang.flag
+    ? `<span class="lang-flag" style="font-size:1.1rem;line-height:1;">${lang.flag}</span>`
+    : CA_FLAG_SVG;
+}
+
+function buildLangMenu() {
+  const menu = document.getElementById('lang-menu');
+  menu.innerHTML = LANGS.map(l => `
+    <div class="lang-opt" data-code="${l.code}" onclick="selectLang('${l.code}')">
+      ${flagHTML(l)} ${l.label}
+    </div>
+  `).join('');
+}
+
+function toggleLangMenu() {
+  document.getElementById('lang-menu').classList.toggle('open');
+}
+
+function selectLang(code) {
+  document.getElementById('lang-menu').classList.remove('open');
+  applyLang(code);
+}
+
+// close on outside click
+document.addEventListener('click', e => {
+  if (!document.getElementById('lang-dd').contains(e.target))
+    document.getElementById('lang-menu').classList.remove('open');
+});
+
+let currentLang = 'en';
+let currentPrinterType = 'system';
+let currentStatus = { type: 'idle', key: 'notConfigured' };
+
+function setPrinterType(type) {
+  currentPrinterType = type;
+  document.getElementById('btn-type-system').classList.toggle('active', type === 'system');
+  document.getElementById('btn-type-thermal').classList.toggle('active', type === 'thermal');
+  document.getElementById('system-fields').style.display  = type === 'system'  ? '' : 'none';
+  document.getElementById('thermal-fields').style.display = type === 'thermal' ? '' : 'none';
+}
+
+function applyLang(lang) {
+  currentLang = lang;
+  const l = LANGS.find(x => x.code === lang) || LANGS[0];
+  document.getElementById('lang-btn-flag').innerHTML = flagHTML(l);
+  document.getElementById('lang-btn-label').textContent = l.label;
+  document.querySelectorAll('.lang-opt').forEach(el =>
+    el.classList.toggle('active', el.dataset.code === lang));
+  const t = UI[lang] || UI.en;
+  document.getElementById('hdr-sub').textContent             = t.sub;
+  document.getElementById('lbl-token').textContent           = t.token;
+  document.getElementById('lbl-token-hint').textContent      = t.tokenHint;
+  document.getElementById('lbl-printer-type').textContent    = t.printerType || 'Printer type';
+  document.getElementById('lbl-thermal-ip').textContent      = t.thermalIp   || 'Printer IP address';
+  document.getElementById('lbl-thermal-port').textContent    = t.thermalPort  || 'Port';
+  document.getElementById('lbl-thermal-hint').textContent    = t.thermalHint  || '';
+  document.getElementById('lbl-printer').textContent         = t.printer;
+  document.getElementById('lbl-default-printer').textContent = t.defaultPrinter;
+  document.getElementById('lbl-width').textContent           = t.width;
+  document.getElementById('btn-test').textContent            = t.test;
+  document.getElementById('btn-save').textContent            = t.save;
+  document.getElementById('status-text').textContent         = t[currentStatus.key] || currentStatus.text || '';
+  document.getElementById('token').placeholder               = t.tokenHint.split('→')[0].trim();
+}
+
+async function init() {
+  buildLangMenu();
+
+  const [cfg, printers] = await Promise.all([
+    ipcRenderer.invoke('get-config'),
+    ipcRenderer.invoke('get-printers'),
+  ]);
+
+  applyLang(cfg.lang || 'en');
+
+  if (cfg.token)      document.getElementById('token').value      = cfg.token;
+  if (cfg.cols)       document.getElementById('cols').value       = cfg.cols;
+  if (cfg.thermalIp)  document.getElementById('thermalIp').value  = cfg.thermalIp;
+  if (cfg.thermalPort)document.getElementById('thermalPort').value= cfg.thermalPort;
+  if (cfg.printerType) setPrinterType(cfg.printerType);
+
+  const sel = document.getElementById('printer');
+  printers.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p; opt.textContent = p;
+    if (p === cfg.printer) opt.selected = true;
+    sel.appendChild(opt);
+  });
+
+  if (cfg.token) setStatus('ok', 'running');
+}
+
+function currentCfg() {
+  return {
+    token:   document.getElementById('token').value.trim(),
+    printer: document.getElementById('printer').value,
+    cols:    parseInt(document.getElementById('cols').value),
+    lang:        currentLang,
+    printerType: currentPrinterType,
+    thermalIp:   document.getElementById('thermalIp').value.trim(),
+    thermalPort: parseInt(document.getElementById('thermalPort').value) || 9100,
+  };
+}
+
+async function save() {
+  const cfg = currentCfg();
+  if (!cfg.token) { setStatus('err', 'noToken'); return; }
+  await ipcRenderer.invoke('save-config', cfg);
+  setStatus('ok', 'running');
+}
+
+async function testPrint() {
+  const cfg = currentCfg();
+  const result = await ipcRenderer.invoke('test-print', cfg);
+  if (result.ok) {
+    setStatus('ok', 'testOk');
+  } else {
+    setStatus('err', null, (UI[currentLang] || UI.en).testFail + result.error);
+  }
+}
+
+function setStatus(type, key, text) {
+  const t = UI[currentLang] || UI.en;
+  currentStatus = { type, key, text };
+  const bar = document.getElementById('status-bar');
+  const dot = document.getElementById('dot');
+  bar.className = 'status ' + type;
+  dot.className = 'dot ' + (type === 'ok' ? 'dot-green' : type === 'err' ? 'dot-red' : 'dot-grey');
+  document.getElementById('status-text').textContent = key ? (t[key] || key) : text;
+}
+
+init();
+</script>
+</body>
+</html>
