@@ -29,7 +29,9 @@
       "category": "public.app-category.business"
     },
     "linux": {
-      "target": "AppImage",
+      "target": [
+        { "target": "AppImage", "arch": ["x64", "arm64", "armv7l"] }
+      ],
       "icon": "assets/icon.png",
       "executableArgs": ["--no-sandbox"]
     }
