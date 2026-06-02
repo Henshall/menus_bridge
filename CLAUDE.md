@@ -16,19 +16,17 @@ Full release workflow:
 # 1. Bump version
 npm version patch --no-git-tag-version
 
-# 2. Build
-./build.sh linux        # x64 + arm64 + armv7l AppImages
-./build.sh mac          # DMG (requires macOS)
-./build.sh win          # NSIS installer
-
-# 3. Test locally (unpacked build is faster to launch than AppImage)
+# 2. Test locally (unpacked build is faster to launch than AppImage)
+./build.sh linux
 ./dist/linux-unpacked/menus-print-bridge --no-sandbox
 
-# 4. Deploy to prod + staging
-./deploy.sh linux
+# 3. Build + deploy in one step (per platform)
+./deploy_linux.sh   # builds Linux AppImages and uploads to prod & staging
+./deploy_mac.sh     # builds Mac DMG and uploads (run on macOS)
+./deploy_win.sh     # builds Windows EXE and uploads
 ```
 
-The version is read dynamically from `package.json` in both scripts — never hardcode it in `deploy.sh` or `build.sh`.
+The deploy scripts are gitignored (contain server IP and SSH key path). The version is read dynamically from `package.json` — never hardcode it.
 
 In dev, always pass `--no-sandbox` (built AppImages have this set via `executableArgs` in `package.json`):
 

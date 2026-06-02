@@ -1,3 +1,6 @@
 node_modules/
 dist/
 deploy.sh
+deploy_linux.sh
+deploy_mac.sh
+deploy_win.sh
