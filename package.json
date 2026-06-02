@@ -1,6 +1,6 @@
 {
   "name": "menus-print-bridge",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Print bridge for Menus by Baseup Operations",
   "main": "main.js",
   "scripts": {
