@@ -176,6 +176,14 @@
     <button class="btn-primary" id="btn-test" onclick="testTokenAndPrint()" style="background:#1a7a4c;">Test Token &amp; Print</button>
   </div>
 
+  <div class="field">
+    <label style="display:flex;justify-content:space-between;align-items:center;">
+      <span>Log</span>
+      <span onclick="clearLog()" style="font-weight:400;font-size:0.75rem;color:#888;cursor:pointer;">Clear</span>
+    </label>
+    <div id="log-area" style="background:#f8f9fa;border:1.5px solid #dee2e6;border-radius:8px;padding:8px 10px;font-size:0.72rem;font-family:monospace;color:#374151;height:120px;overflow-y:auto;white-space:pre-wrap;"></div>
+  </div>
+
 </div>
 
 <script>
@@ -436,6 +444,19 @@ function setStatus(type, key, text) {
   dot.className = 'dot ' + (type === 'ok' ? 'dot-green' : type === 'err' ? 'dot-red' : 'dot-grey');
   document.getElementById('status-text').textContent = key ? (t[key] || key) : text;
 }
+
+function appendLog(msg) {
+  const el = document.getElementById('log-area');
+  const ts = new Date().toLocaleTimeString();
+  el.textContent += `[${ts}] ${msg}\n`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function clearLog() {
+  document.getElementById('log-area').textContent = '';
+}
+
+ipcRenderer.on('log', (_, msg) => appendLog(msg));
 
 init();
 ipcRenderer.invoke('get-version').then(v => { document.getElementById('version').textContent = 'v' + v; });

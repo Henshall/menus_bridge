@@ -121,6 +121,7 @@ function restartBridge(cfg) {
 
     isRunning = true;
     updateTray();
+    pushLog('Bridge started — polling every 4s');
 
     const run = () => bridge.poll(cfg, onOrderPrinted, onError);
     run();
@@ -130,7 +131,12 @@ function restartBridge(cfg) {
 let notifTimer = null;
 let pendingNotifs = [];
 
+function pushLog(msg) {
+    if (settingsWin) settingsWin.webContents.send('log', msg);
+}
+
 function onOrderPrinted(order) {
+    pushLog(`✓ Printed order #${order.order_number}${order.table_name ? ' · ' + order.table_name : ''}`);
     pendingNotifs.push(order);
     if (notifTimer) return;
     notifTimer = setTimeout(() => {
@@ -151,6 +157,7 @@ function onOrderPrinted(order) {
 
 function onError(msg) {
     console.error('[bridge]', msg);
+    pushLog(`✗ ${msg}`);
 }
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
