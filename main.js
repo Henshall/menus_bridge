@@ -65,6 +65,22 @@ ipcMain.handle('save-config', async (_, cfg) => {
     return { ok: true };
 });
 
+ipcMain.handle('verify-token', async (_, cfg) => {
+    try {
+        const apiUrl = process.env.MENUS_API || 'https://menus.kitchen/api';
+        const fetch = require('node-fetch');
+        const res = await fetch(`${apiUrl}/token-verification`, {
+            headers: { Authorization: `Bearer ${cfg.token}`, Accept: 'application/json' },
+            timeout: 8000,
+        });
+        if (!res.ok) return { ok: false, error: `Server returned ${res.status}` };
+        const data = await res.json();
+        return { ok: true, restaurants: data.restaurants || [] };
+    } catch (e) {
+        return { ok: false, error: e.message };
+    }
+});
+
 ipcMain.handle('test-print', async (_, cfg) => {
     try {
         if (cfg.printerType === 'thermal') {
@@ -72,7 +88,13 @@ ipcMain.handle('test-print', async (_, cfg) => {
             const cols = cfg.cols || 32;
             await bridge.printThermal(bridge.escpos(bridge.buildTestReceipt(cols), cols, cfg.lang || 'en'), cfg.thermalIp, cfg.thermalPort || 9100);
         } else {
-            bridge.printText(bridge.buildReceiptPS(bridge.buildTestReceipt(cfg.cols || 48), cfg.cols || 48, cfg.lang || 'en'), cfg.printer || null);
+            const cols = cfg.cols || 48;
+            const text = bridge.buildTestReceipt(cols);
+            if (cfg.printFormat === 'txt') {
+                bridge.printText(text, cfg.printer || null);
+            } else {
+                bridge.printText(bridge.buildReceiptPS(text, cols, cfg.lang || 'en'), cfg.printer || null);
+            }
         }
         return { ok: true };
     } catch (e) {

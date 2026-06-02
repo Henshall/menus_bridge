@@ -119,7 +119,7 @@
 
   <div class="field">
     <label id="lbl-token">Print Token</label>
-    <input type="password" id="token" placeholder="…">
+    <input type="password" id="token" placeholder="…" onchange="autoSave()">
     <div class="hint" id="lbl-token-hint">Find this in your Menus dashboard → Mobile App → Print Bridge</div>
   </div>
 
@@ -134,8 +134,15 @@
   <div id="system-fields">
     <div class="field">
       <label id="lbl-printer">Printer</label>
-      <select id="printer">
+      <select id="printer" onchange="autoSave()">
         <option value="" id="lbl-default-printer">System default printer</option>
+      </select>
+    </div>
+    <div class="field" style="margin-top:14px;">
+      <label id="lbl-format">Print format</label>
+      <select id="printFormat" onchange="autoSave()">
+        <option value="ps">PostScript (.ps) — best quality</option>
+        <option value="txt">Plain text (.txt) — universal</option>
       </select>
     </div>
   </div>
@@ -158,7 +165,7 @@
 
   <div class="field">
     <label id="lbl-width">Paper width</label>
-    <select id="cols">
+    <select id="cols" onchange="autoSave()">
       <option value="32">58mm — narrow thermal (32 chars)</option>
       <option value="48" selected>80mm — standard thermal (48 chars)</option>
       <option value="64">Full page (64 chars)</option>
@@ -166,8 +173,7 @@
   </div>
 
   <div class="btn-row">
-    <button class="btn-secondary" id="btn-test" onclick="testPrint()">Test print</button>
-    <button class="btn-primary"   id="btn-save" onclick="save()">Save &amp; start</button>
+    <button class="btn-primary" id="btn-test" onclick="testTokenAndPrint()" style="background:#1a7a4c;">Test Token &amp; Print</button>
   </div>
 
 </div>
@@ -355,10 +361,11 @@ async function init() {
 
   applyLang(cfg.lang || 'en');
 
-  if (cfg.token)      document.getElementById('token').value      = cfg.token;
-  if (cfg.cols)       document.getElementById('cols').value       = cfg.cols;
-  if (cfg.thermalIp)  document.getElementById('thermalIp').value  = cfg.thermalIp;
-  if (cfg.thermalPort)document.getElementById('thermalPort').value= cfg.thermalPort;
+  if (cfg.token)       document.getElementById('token').value       = cfg.token;
+  if (cfg.cols)        document.getElementById('cols').value        = cfg.cols;
+  if (cfg.thermalIp)   document.getElementById('thermalIp').value   = cfg.thermalIp;
+  if (cfg.thermalPort) document.getElementById('thermalPort').value = cfg.thermalPort;
+  if (cfg.printFormat) document.getElementById('printFormat').value = cfg.printFormat;
   if (cfg.printerType) setPrinterType(cfg.printerType);
 
   const sel = document.getElementById('printer');
@@ -374,29 +381,49 @@ async function init() {
 
 function currentCfg() {
   return {
-    token:   document.getElementById('token').value.trim(),
-    printer: document.getElementById('printer').value,
-    cols:    parseInt(document.getElementById('cols').value),
+    token:       document.getElementById('token').value.trim(),
+    printer:     document.getElementById('printer').value,
+    cols:        parseInt(document.getElementById('cols').value),
     lang:        currentLang,
     printerType: currentPrinterType,
+    printFormat: document.getElementById('printFormat').value,
     thermalIp:   document.getElementById('thermalIp').value.trim(),
     thermalPort: parseInt(document.getElementById('thermalPort').value) || 9100,
   };
 }
 
-async function save() {
+async function autoSave() {
   const cfg = currentCfg();
-  if (!cfg.token) { setStatus('err', 'noToken'); return; }
+  if (!cfg.token) return;
   await ipcRenderer.invoke('save-config', cfg);
   setStatus('ok', 'running');
 }
 
-async function testPrint() {
+async function testTokenAndPrint() {
   const cfg = currentCfg();
+  if (!cfg.token) { setStatus('err', 'noToken'); return; }
+
+  const btn = document.getElementById('btn-test');
+  btn.disabled = true;
+  btn.textContent = 'Verifying…';
+
+  const verify = await ipcRenderer.invoke('verify-token', cfg);
+  if (!verify.ok) {
+    setStatus('err', null, 'Token invalid: ' + verify.error);
+    btn.disabled = false;
+    btn.textContent = 'Test Token & Print';
+    return;
+  }
+
+  const names = (verify.restaurants || []).map(r => r.name || r).join(', ');
+  setStatus('ok', null, '✓ Token valid' + (names ? ' — ' + names : ''));
+
+  btn.textContent = 'Printing…';
   const result = await ipcRenderer.invoke('test-print', cfg);
-  if (result.ok) {
-    setStatus('ok', 'testOk');
-  } else {
+  btn.disabled = false;
+  btn.textContent = 'Test Token & Print';
+
+  if (!result.ok) {
     setStatus('err', null, (UI[currentLang] || UI.en).testFail + result.error);
   }
 }
