@@ -1,5 +1,15 @@
 #!/bin/bash
 # Menus Print Bridge — build script
+#
+# Packages the Electron app into distributable artifacts in dist/.
+# After building, run ./deploy.sh <platform> to upload to prod & staging.
+#
+# Full release workflow:
+#   1. Bump version:  npm version patch --no-git-tag-version
+#   2. Build:         ./build.sh linux   (or mac / win / all)
+#   3. Test locally:  ./dist/linux-unpacked/menus-print-bridge --no-sandbox
+#   4. Deploy:        ./deploy.sh linux
+#
 # Usage:
 #   ./build.sh mac    — build Mac DMG + install to /Applications
 #   ./build.sh win    — build Windows EXE

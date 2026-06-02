@@ -57,12 +57,20 @@ function openSettings() {
 // ── IPC from settings window ─────────────────────────────────────────────────
 ipcMain.handle('get-config', () => loadConfig());
 
+ipcMain.handle('get-version', () => app.getVersion());
+
 ipcMain.handle('get-printers', async () => bridge.listPrinters());
 
 ipcMain.handle('save-config', async (_, cfg) => {
     saveConfig(cfg);
     restartBridge(cfg);
     return { ok: true };
+});
+
+ipcMain.on('save-config-sync', (event, cfg) => {
+    saveConfig(cfg);
+    restartBridge(cfg);
+    event.returnValue = true;
 });
 
 ipcMain.handle('verify-token', async (_, cfg) => {

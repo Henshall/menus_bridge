@@ -29,7 +29,7 @@ function listPrinters() {
             );
             return out.split('\n').map(s => s.trim()).filter(Boolean);
         } else {
-            const out = execSync('lpstat -a 2>/dev/null || lpstat -p 2>/dev/null', { encoding: 'utf8' });
+            const out = execSync('/usr/bin/lpstat -a 2>/dev/null || /usr/bin/lpstat -p 2>/dev/null', { encoding: 'utf8', env: { PATH: '/usr/bin:/bin' } });
             return out.split('\n')
                 .map(l => l.match(/^(?:printer\s+|)(\S+)/)?.[1])
                 .filter(Boolean);

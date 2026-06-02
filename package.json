@@ -1,6 +1,6 @@
 {
   "name": "menus-print-bridge",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Print bridge for Menus by Baseup Operations",
   "main": "main.js",
   "scripts": {
@@ -19,7 +19,12 @@
   "build": {
     "appId": "kitchen.menus.print-bridge",
     "productName": "Menus Print Bridge",
-    "files": ["main.js", "bridge.js", "ui/**/*", "assets/**/*"],
+    "files": [
+      "main.js",
+      "bridge.js",
+      "ui/**/*",
+      "assets/**/*"
+    ],
     "win": {
       "target": "nsis"
     },
@@ -30,10 +35,19 @@
     },
     "linux": {
       "target": [
-        { "target": "AppImage", "arch": ["x64", "arm64", "armv7l"] }
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64",
+            "arm64",
+            "armv7l"
+          ]
+        }
       ],
       "icon": "assets/icon.png",
-      "executableArgs": ["--no-sandbox"]
+      "executableArgs": [
+        "--no-sandbox"
+      ]
     }
   }
 }

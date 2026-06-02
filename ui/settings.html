@@ -119,7 +119,7 @@
 
   <div class="field">
     <label id="lbl-token">Print Token</label>
-    <input type="password" id="token" placeholder="…" onchange="autoSave()">
+    <input type="password" id="token" placeholder="…" oninput="autoSave()">
     <div class="hint" id="lbl-token-hint">Find this in your Menus dashboard → Mobile App → Print Bridge</div>
   </div>
 
@@ -151,11 +151,11 @@
     <div class="ip-row">
       <div class="field">
         <label id="lbl-thermal-ip">Printer IP address</label>
-        <input type="text" id="thermalIp" placeholder="192.168.1.100">
+        <input type="text" id="thermalIp" placeholder="192.168.1.100" oninput="autoSave()">
       </div>
       <div class="field port">
         <label id="lbl-thermal-port">Port</label>
-        <input type="number" id="thermalPort" value="9100" min="1" max="65535">
+        <input type="number" id="thermalPort" value="9100" min="1" max="65535" oninput="autoSave()">
       </div>
     </div>
     <div class="field">
@@ -346,7 +346,6 @@ function applyLang(lang) {
   document.getElementById('lbl-default-printer').textContent = t.defaultPrinter;
   document.getElementById('lbl-width').textContent           = t.width;
   document.getElementById('btn-test').textContent            = t.test;
-  document.getElementById('btn-save').textContent            = t.save;
   document.getElementById('status-text').textContent         = t[currentStatus.key] || currentStatus.text || '';
   document.getElementById('token').placeholder               = t.tokenHint.split('→')[0].trim();
 }
@@ -439,6 +438,12 @@ function setStatus(type, key, text) {
 }
 
 init();
+ipcRenderer.invoke('get-version').then(v => { document.getElementById('version').textContent = 'v' + v; });
+window.addEventListener('beforeunload', () => {
+    const cfg = currentCfg();
+    if (cfg.token) ipcRenderer.sendSync('save-config-sync', cfg);
+});
 </script>
+<div id="version" style="position:fixed;bottom:8px;right:12px;font-size:0.7rem;color:#bbb;pointer-events:none;"></div>
 </body>
 </html>
