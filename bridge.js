@@ -190,19 +190,20 @@ function buildTestReceipt(cols = 48) {
 }
 
 function printText(text, printerName) {
-    const tmp = path.join(os.tmpdir(), `menus-${Date.now()}.ps`);
+    const ext = text.startsWith('%!PS') ? '.ps' : '.txt';
+    const tmp = path.join(os.tmpdir(), `menus-${Date.now()}${ext}`);
     fs.writeFileSync(tmp, text, 'utf8');
     try {
         if (process.platform === 'win32') {
             const cmd = printerName
                 ? `Out-Printer -Name '${printerName.replace(/'/g, "''")}' -InputObject (Get-Content -Raw '${tmp.replace(/'/g, "''")}')`
                 : `Out-Printer -InputObject (Get-Content -Raw '${tmp.replace(/'/g, "''")}')`;
-            spawnSync('powershell', ['-Command', cmd], { stdio: 'ignore' });
+            const result = spawnSync('powershell', ['-Command', cmd], { encoding: 'utf8' });
+            if (result.status !== 0) throw new Error('print failed (exit ' + result.status + ')' + (result.stderr ? ': ' + result.stderr : ''));
         } else {
             const args = printerName ? ['-P', printerName, tmp] : [tmp];
-            const result = spawnSync('lpr', args, { encoding: 'utf8' });
-            if (result.stderr) console.error('[lpr stderr]', result.stderr);
-            if (result.status !== 0) console.error('[lpr exit]', result.status);
+            const result = spawnSync('/usr/bin/lpr', args, { encoding: 'utf8' });
+            if (result.status !== 0) throw new Error('lpr failed (exit ' + result.status + ')' + (result.stderr ? ': ' + result.stderr : ''));
         }
     } finally {
         try { fs.unlinkSync(tmp); } catch {}
@@ -231,7 +232,12 @@ async function poll(cfg, onPrinted, onError) {
                 const cols = cfg.cols || 32;
                 await printThermal(escpos(order, cols, cfg.lang || 'en'), cfg.thermalIp, cfg.thermalPort || 9100);
             } else {
-                printText(buildReceiptPS(order, cfg.cols || 48, cfg.lang || 'en'), cfg.printer || null);
+                const cols = cfg.cols || 48;
+                const lang = cfg.lang || 'en';
+                const text = cfg.printFormat === 'txt'
+                    ? buildReceipt(order, cols, lang)
+                    : buildReceiptPS(order, cols, lang);
+                printText(text, cfg.printer || null);
             }
             await fetch(`${apiBase}/print-queue/${order.id}/printed`, {
                 method: 'POST',
