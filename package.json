@@ -1,6 +1,6 @@
 {
   "name": "menus-print-bridge",
-  "version": "1.0.6",
+  "version": "1.0.9",
   "description": "Print bridge for Menus by Baseup Operations",
   "main": "main.js",
   "scripts": {
@@ -10,6 +10,7 @@
     "build:linux": "electron-builder --linux"
   },
   "dependencies": {
+    "electron-updater": "^6.8.3",
     "node-fetch": "^2.7.0"
   },
   "devDependencies": {
@@ -19,6 +20,7 @@
   "build": {
     "appId": "kitchen.menus.print-bridge",
     "productName": "Menus Print Bridge",
+    "artifactName": "menus-print-bridge-${version}-${arch}.${ext}",
     "files": [
       "main.js",
       "bridge.js",
@@ -49,6 +51,10 @@
       "executableArgs": [
         "--no-sandbox"
       ]
+    },
+    "publish": {
+      "provider": "generic",
+      "url": "https://menus.kitchen/bridge-updates"
     }
   }
 }

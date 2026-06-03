@@ -1,6 +1,7 @@
 'use strict';
 
 const { app, BrowserWindow, Tray, Menu, nativeImage, shell, ipcMain, dialog, Notification } = require('electron');
+const { autoUpdater } = require('electron-updater');
 
 app.commandLine.appendSwitch('no-sandbox');
 const path   = require('path');
@@ -172,6 +173,30 @@ app.whenReady().then(() => {
     const cfg = loadConfig();
     if (cfg.token) restartBridge(cfg);
     openSettings();
+
+    // Check for updates (silently — only notifies when one is downloaded)
+    if (app.isPackaged) autoUpdater.checkForUpdates();
 });
 
 app.on('window-all-closed', (e) => e.preventDefault()); // keep running in tray
+
+// ── Auto-update ───────────────────────────────────────────────────────────────
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
+
+autoUpdater.on('update-downloaded', () => {
+    if (tray) {
+        tray.setToolTip('Menus Print Bridge — update ready, will install on quit');
+        updateTray();
+    }
+    if (Notification.isSupported()) {
+        new Notification({
+            title: 'Menus Print Bridge — update ready',
+            body: 'A new version has been downloaded and will install when you quit.',
+        }).show();
+    }
+});
+
+autoUpdater.on('error', (err) => {
+    console.error('[updater]', err.message);
+});
