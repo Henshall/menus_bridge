@@ -2,13 +2,13 @@
 # Menus Print Bridge — build script
 #
 # Packages the Electron app into distributable artifacts in dist/.
-# After building, run ./deploy.sh <platform> to upload to prod & staging.
+# The deploy_<platform>.sh scripts build AND upload — use those for releases.
 #
 # Full release workflow:
 #   1. Bump version:  npm version patch --no-git-tag-version
 #   2. Build:         ./build.sh linux   (or mac / win / all)
 #   3. Test locally:  ./dist/linux-unpacked/menus-print-bridge --no-sandbox
-#   4. Deploy:        ./deploy.sh linux
+#   4. Deploy:        ./deploy_linux.sh  (or deploy_mac.sh / deploy_win.sh)
 #
 # Usage:
 #   ./build.sh mac    — build Mac DMG + install to /Applications
@@ -57,4 +57,4 @@ case "$PLATFORM" in
 esac
 
 echo ""
-echo "✅ Done. Run ./deploy.sh to upload to servers."
+echo "✅ Done. Run ./deploy_<platform>.sh to build + upload in one step."
