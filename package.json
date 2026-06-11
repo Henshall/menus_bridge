@@ -1,6 +1,6 @@
 {
   "name": "menus-print-bridge",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "Print bridge for Menus by Baseup Operations",
   "main": "main.js",
   "scripts": {
@@ -32,7 +32,10 @@
       "icon": "assets/icon.ico"
     },
     "mac": {
-      "target": "dmg",
+      "target": [
+        "zip",
+        "dmg"
+      ],
       "icon": "assets/icon.icns",
       "category": "public.app-category.business"
     },

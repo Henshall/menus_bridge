@@ -126,8 +126,8 @@
   <div class="field">
     <label id="lbl-printer-type">Printer type</label>
     <div class="type-toggle">
-      <button class="type-btn active" id="btn-type-system" onclick="setPrinterType('system')" id="lbl-type-system">🖨 System printer</button>
-      <button class="type-btn"        id="btn-type-thermal" onclick="setPrinterType('thermal')">🧾 Thermal (ESC/POS)</button>
+      <button class="type-btn active" id="btn-type-system" onclick="setPrinterType('system'); autoSave()">🖨 System printer</button>
+      <button class="type-btn"        id="btn-type-thermal" onclick="setPrinterType('thermal'); autoSave()">🧾 Thermal (ESC/POS)</button>
     </div>
   </div>
 
@@ -138,7 +138,7 @@
         <option value="" id="lbl-default-printer">System default printer</option>
       </select>
     </div>
-    <div class="field" style="margin-top:14px;">
+    <div class="field" style="margin-top:14px;" id="format-field">
       <label id="lbl-format">Print format</label>
       <select id="printFormat" onchange="autoSave()">
         <option value="ps">PostScript (.ps) — best quality</option>
@@ -193,85 +193,115 @@ const { ipcRenderer } = require('electron');
 const UI = {
   en: {
     sub: 'Automatically print orders from all sources',
-    server: 'Server', token: 'Print Token',
+    token: 'Print Token',
     tokenHint: 'Find this in your Menus dashboard → Mobile App → Print Bridge',
-    printerType: 'Printer type', thermalIp: 'Printer IP address', thermalPort: 'Port',
+    printerType: 'Printer type', typeSystem: 'System printer', typeThermal: 'Thermal (ESC/POS)',
+    thermalIp: 'Printer IP address', thermalPort: 'Port',
     thermalHint: 'Connect your thermal printer via Ethernet or WiFi. Default port is 9100.',
     printer: 'Printer', defaultPrinter: 'System default printer',
-    width: 'Paper width', test: 'Test print', save: 'Save & start',
+    width: 'Paper width', format: 'Print format',
+    testBtn: 'Test Token & Print', verifying: 'Verifying…', printing: 'Printing…',
     notConfigured: 'Not configured', running: 'Bridge running — polling for orders',
     noToken: 'Please enter your print token',
-    testOk: 'Test page sent to printer ✓', testFail: 'Print failed: ',
+    testFail: 'Print failed: ',
   },
   es: {
     sub: 'Imprime pedidos automáticamente de todas las fuentes',
-    server: 'Servidor', token: 'Token de impresión',
+    token: 'Token de impresión',
     tokenHint: 'Encuéntralo en tu panel de Menus → App Móvil → Puente de impresión',
+    printerType: 'Tipo de impresora', typeSystem: 'Impresora del sistema', typeThermal: 'Térmica (ESC/POS)',
+    thermalIp: 'Dirección IP de la impresora', thermalPort: 'Puerto',
+    thermalHint: 'Conecta tu impresora térmica por Ethernet o WiFi. El puerto predeterminado es 9100.',
     printer: 'Impresora', defaultPrinter: 'Impresora predeterminada del sistema',
-    width: 'Ancho del papel', test: 'Página de prueba', save: 'Guardar e iniciar',
+    width: 'Ancho del papel', format: 'Formato de impresión',
+    testBtn: 'Probar token e imprimir', verifying: 'Verificando…', printing: 'Imprimiendo…',
     notConfigured: 'No configurado', running: 'Puente activo — buscando pedidos',
     noToken: 'Por favor ingresa tu token de impresión',
-    testOk: 'Página de prueba enviada a la impresora ✓', testFail: 'Error al imprimir: ',
+    testFail: 'Error al imprimir: ',
   },
   pt: {
     sub: 'Imprime pedidos automaticamente de todas as fontes',
-    server: 'Servidor', token: 'Token de impressão',
+    token: 'Token de impressão',
     tokenHint: 'Encontre no seu painel Menus → App Mobile → Bridge de impressão',
+    printerType: 'Tipo de impressora', typeSystem: 'Impressora do sistema', typeThermal: 'Térmica (ESC/POS)',
+    thermalIp: 'Endereço IP da impressora', thermalPort: 'Porta',
+    thermalHint: 'Conecte sua impressora térmica via Ethernet ou WiFi. A porta padrão é 9100.',
     printer: 'Impressora', defaultPrinter: 'Impressora padrão do sistema',
-    width: 'Largura do papel', test: 'Página de teste', save: 'Salvar e iniciar',
+    width: 'Largura do papel', format: 'Formato de impressão',
+    testBtn: 'Testar token e imprimir', verifying: 'Verificando…', printing: 'Imprimindo…',
     notConfigured: 'Não configurado', running: 'Bridge ativo — buscando pedidos',
     noToken: 'Por favor insira seu token de impressão',
-    testOk: 'Página de teste enviada à impressora ✓', testFail: 'Falha ao imprimir: ',
+    testFail: 'Falha ao imprimir: ',
   },
   fr: {
     sub: 'Imprime automatiquement les commandes de toutes les sources',
-    server: 'Serveur', token: "Token d'impression",
+    token: "Token d'impression",
     tokenHint: 'Trouvez-le dans votre tableau de bord Menus → App Mobile → Pont d\'impression',
+    printerType: "Type d'imprimante", typeSystem: 'Imprimante système', typeThermal: 'Thermique (ESC/POS)',
+    thermalIp: "Adresse IP de l'imprimante", thermalPort: 'Port',
+    thermalHint: 'Connectez votre imprimante thermique via Ethernet ou WiFi. Le port par défaut est 9100.',
     printer: 'Imprimante', defaultPrinter: 'Imprimante par défaut du système',
-    width: 'Largeur du papier', test: 'Page de test', save: 'Enregistrer et démarrer',
+    width: 'Largeur du papier', format: "Format d'impression",
+    testBtn: 'Tester le token et imprimer', verifying: 'Vérification…', printing: 'Impression…',
     notConfigured: 'Non configuré', running: 'Pont actif — recherche de commandes',
     noToken: "Veuillez entrer votre token d'impression",
-    testOk: 'Page de test envoyée à l\'imprimante ✓', testFail: 'Échec impression: ',
+    testFail: 'Échec impression: ',
   },
   de: {
     sub: 'Bestellungen automatisch aus allen Quellen drucken',
-    server: 'Server', token: 'Drucktoken',
+    token: 'Drucktoken',
     tokenHint: 'Im Menus-Dashboard → Mobile App → Druckbrücke zu finden',
+    printerType: 'Druckertyp', typeSystem: 'Systemdrucker', typeThermal: 'Thermo (ESC/POS)',
+    thermalIp: 'IP-Adresse des Druckers', thermalPort: 'Port',
+    thermalHint: 'Thermodrucker über Ethernet oder WLAN verbinden. Standardport ist 9100.',
     printer: 'Drucker', defaultPrinter: 'Systemstandarddrucker',
-    width: 'Papierbreite', test: 'Testdruck', save: 'Speichern & starten',
+    width: 'Papierbreite', format: 'Druckformat',
+    testBtn: 'Token testen & drucken', verifying: 'Überprüfung…', printing: 'Drucken…',
     notConfigured: 'Nicht konfiguriert', running: 'Brücke aktiv — sucht nach Bestellungen',
     noToken: 'Bitte Drucktoken eingeben',
-    testOk: 'Testseite an Drucker gesendet ✓', testFail: 'Druckfehler: ',
+    testFail: 'Druckfehler: ',
   },
   ca: {
     sub: "Imprimeix automàticament les comandes de totes les fonts",
-    server: 'Servidor', token: "Token d'impressió",
+    token: "Token d'impressió",
     tokenHint: "Troba'l al teu tauler de Menus → App Mòbil → Pont d'impressió",
+    printerType: "Tipus d'impressora", typeSystem: 'Impressora del sistema', typeThermal: 'Tèrmica (ESC/POS)',
+    thermalIp: "Adreça IP de la impressora", thermalPort: 'Port',
+    thermalHint: 'Connecta la impressora tèrmica per Ethernet o WiFi. El port predeterminat és 9100.',
     printer: 'Impressora', defaultPrinter: 'Impressora predeterminada del sistema',
-    width: 'Amplada del paper', test: 'Pàgina de prova', save: 'Desar i iniciar',
+    width: 'Amplada del paper', format: "Format d'impressió",
+    testBtn: 'Provar token i imprimir', verifying: 'Verificant…', printing: 'Imprimint…',
     notConfigured: 'No configurat', running: 'Pont actiu — buscant comandes',
     noToken: "Si us plau, introdueix el token d'impressió",
-    testOk: "Pàgina de prova enviada a la impressora ✓", testFail: "Error d'impressió: ",
+    testFail: "Error d'impressió: ",
   },
   ar: {
     sub: 'طباعة الطلبات تلقائياً من جميع المصادر',
-    server: 'الخادم', token: 'رمز الطباعة',
+    token: 'رمز الطباعة',
     tokenHint: 'ابحث عنه في لوحة التحكم → تطبيق الجوال → جسر الطباعة',
+    printerType: 'نوع الطابعة', typeSystem: 'طابعة النظام', typeThermal: 'حرارية (ESC/POS)',
+    thermalIp: 'عنوان IP للطابعة', thermalPort: 'المنفذ',
+    thermalHint: 'وصّل الطابعة الحرارية عبر إيثرنت أو واي فاي. المنفذ الافتراضي 9100.',
     printer: 'الطابعة', defaultPrinter: 'الطابعة الافتراضية للنظام',
-    width: 'عرض الورق', test: 'طباعة تجريبية', save: 'حفظ وبدء',
+    width: 'عرض الورق', format: 'تنسيق الطباعة',
+    testBtn: 'اختبار الرمز والطباعة', verifying: 'جارٍ التحقق…', printing: 'جارٍ الطباعة…',
     notConfigured: 'غير مُهيأ', running: 'الجسر يعمل — يبحث عن طلبات',
     noToken: 'يرجى إدخال رمز الطباعة',
-    testOk: 'تم إرسال الصفحة التجريبية ✓', testFail: 'فشل الطباعة: ',
+    testFail: 'فشل الطباعة: ',
   },
   zh: {
     sub: '自动从所有来源打印订单',
-    server: '服务器', token: '打印令牌',
+    token: '打印令牌',
     tokenHint: '在 Menus 控制台 → 移动应用 → 打印桥 中找到',
+    printerType: '打印机类型', typeSystem: '系统打印机', typeThermal: '热敏 (ESC/POS)',
+    thermalIp: '打印机 IP 地址', thermalPort: '端口',
+    thermalHint: '通过以太网或 WiFi 连接热敏打印机。默认端口为 9100。',
     printer: '打印机', defaultPrinter: '系统默认打印机',
-    width: '纸张宽度', test: '测试打印', save: '保存并启动',
+    width: '纸张宽度', format: '打印格式',
+    testBtn: '测试令牌并打印', verifying: '验证中…', printing: '打印中…',
     notConfigured: '未配置', running: '桥接运行中 — 轮询订单',
     noToken: '请输入您的打印令牌',
-    testOk: '测试页已发送到打印机 ✓', testFail: '打印失败: ',
+    testFail: '打印失败: ',
   },
 };
 
@@ -316,6 +346,7 @@ function toggleLangMenu() {
 function selectLang(code) {
   document.getElementById('lang-menu').classList.remove('open');
   applyLang(code);
+  autoSave(); // persist the language right away
 }
 
 // close on outside click
@@ -347,14 +378,17 @@ function applyLang(lang) {
   document.getElementById('hdr-sub').textContent             = t.sub;
   document.getElementById('lbl-token').textContent           = t.token;
   document.getElementById('lbl-token-hint').textContent      = t.tokenHint;
-  document.getElementById('lbl-printer-type').textContent    = t.printerType || 'Printer type';
-  document.getElementById('lbl-thermal-ip').textContent      = t.thermalIp   || 'Printer IP address';
-  document.getElementById('lbl-thermal-port').textContent    = t.thermalPort  || 'Port';
-  document.getElementById('lbl-thermal-hint').textContent    = t.thermalHint  || '';
+  document.getElementById('lbl-printer-type').textContent    = t.printerType;
+  document.getElementById('btn-type-system').textContent     = '🖨 ' + t.typeSystem;
+  document.getElementById('btn-type-thermal').textContent    = '🧾 ' + t.typeThermal;
+  document.getElementById('lbl-thermal-ip').textContent      = t.thermalIp;
+  document.getElementById('lbl-thermal-port').textContent    = t.thermalPort;
+  document.getElementById('lbl-thermal-hint').textContent    = t.thermalHint;
   document.getElementById('lbl-printer').textContent         = t.printer;
   document.getElementById('lbl-default-printer').textContent = t.defaultPrinter;
   document.getElementById('lbl-width').textContent           = t.width;
-  document.getElementById('btn-test').textContent            = t.test;
+  document.getElementById('lbl-format').textContent          = t.format;
+  document.getElementById('btn-test').textContent            = t.testBtn;
   document.getElementById('status-text').textContent         = t[currentStatus.key] || currentStatus.text || '';
   document.getElementById('token').placeholder               = t.tokenHint.split('→')[0].trim();
 }
@@ -375,6 +409,13 @@ async function init() {
   if (cfg.thermalPort) document.getElementById('thermalPort').value = cfg.thermalPort;
   if (cfg.printFormat) document.getElementById('printFormat').value = cfg.printFormat;
   if (cfg.printerType) setPrinterType(cfg.printerType);
+
+  // Windows can only render plain text (Out-Printer) — PostScript would
+  // print as source code, so force txt and hide the choice.
+  if (process.platform === 'win32') {
+    document.getElementById('printFormat').value = 'txt';
+    document.getElementById('format-field').style.display = 'none';
+  }
 
   const sel = document.getElementById('printer');
   printers.forEach(p => {
@@ -400,39 +441,48 @@ function currentCfg() {
   };
 }
 
-async function autoSave() {
+// Debounced so typing a token doesn't save/restart the bridge per keystroke.
+// An empty token is saved too — that's how the bridge gets stopped.
+let saveTimer = null;
+function autoSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(doSave, 500);
+}
+
+async function doSave() {
   const cfg = currentCfg();
-  if (!cfg.token) return;
   await ipcRenderer.invoke('save-config', cfg);
-  setStatus('ok', 'running');
+  if (cfg.token) setStatus('ok', 'running');
+  else setStatus('idle', 'notConfigured');
 }
 
 async function testTokenAndPrint() {
+  const t = UI[currentLang] || UI.en;
   const cfg = currentCfg();
   if (!cfg.token) { setStatus('err', 'noToken'); return; }
 
   const btn = document.getElementById('btn-test');
   btn.disabled = true;
-  btn.textContent = 'Verifying…';
+  btn.textContent = t.verifying;
 
   const verify = await ipcRenderer.invoke('verify-token', cfg);
   if (!verify.ok) {
     setStatus('err', null, 'Token invalid: ' + verify.error);
     btn.disabled = false;
-    btn.textContent = 'Test Token & Print';
+    btn.textContent = t.testBtn;
     return;
   }
 
   const names = (verify.restaurants || []).map(r => r.name || r).join(', ');
   setStatus('ok', null, '✓ Token valid' + (names ? ' — ' + names : ''));
 
-  btn.textContent = 'Printing…';
+  btn.textContent = t.printing;
   const result = await ipcRenderer.invoke('test-print', cfg);
   btn.disabled = false;
-  btn.textContent = 'Test Token & Print';
+  btn.textContent = t.testBtn;
 
   if (!result.ok) {
-    setStatus('err', null, (UI[currentLang] || UI.en).testFail + result.error);
+    setStatus('err', null, t.testFail + result.error);
   }
 }
 
@@ -459,11 +509,21 @@ function clearLog() {
 
 ipcRenderer.on('log', (_, msg) => appendLog(msg));
 
+// Live status from the poll loop (auth failures, printer errors, recovery)
+ipcRenderer.on('bridge-status', (_, s) => {
+  if (s.type === 'ok')       setStatus('ok', 'running');
+  else if (s.type === 'err') setStatus('err', null, '✗ ' + s.text);
+  else                       setStatus('idle', 'notConfigured');
+});
+
 init();
 ipcRenderer.invoke('get-version').then(v => { document.getElementById('version').textContent = 'v' + v; });
 window.addEventListener('beforeunload', () => {
-    const cfg = currentCfg();
-    if (cfg.token) ipcRenderer.sendSync('save-config-sync', cfg);
+    // flush any pending debounced save — synchronously, so the in-flight
+    // IPC isn't dropped when the renderer is destroyed (saves an emptied
+    // token too, which is how the bridge gets stopped)
+    clearTimeout(saveTimer);
+    ipcRenderer.sendSync('save-config-sync', currentCfg());
 });
 </script>
 <div id="version" style="position:fixed;bottom:8px;right:12px;font-size:0.7rem;color:#bbb;pointer-events:none;"></div>

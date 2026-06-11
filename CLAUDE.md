@@ -62,4 +62,8 @@ Then use the Chrome DevTools protocol (or open `http://localhost:9222` in a brow
 
 ### Token saving requires `beforeunload`
 
-`autoSave()` is async (`ipcRenderer.invoke`). If the user closes the settings window immediately after typing, the in-flight IPC call may be dropped. A synchronous `ipcRenderer.sendSync('save-config-sync', cfg)` on `beforeunload` guarantees the token is written before the renderer is destroyed.
+`autoSave()` is debounced (500ms) and async (`ipcRenderer.invoke`). If the user closes the settings window immediately after typing, the pending save would be dropped. A synchronous `ipcRenderer.sendSync('save-config-sync', cfg)` on `beforeunload` guarantees the config is written before the renderer is destroyed. It must save even when the token is empty — clearing the token is how the user stops the bridge.
+
+### Poll loop must not overlap
+
+`restartBridge` uses a self-rescheduling `setTimeout` (not `setInterval`) plus a `pollGeneration` counter. A slow print cycle (thermal timeout is 8s) must finish before the next poll, otherwise unacked orders get fetched and printed twice. Don't convert it back to `setInterval`.

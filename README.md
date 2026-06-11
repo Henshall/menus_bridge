@@ -50,31 +50,25 @@ npm start
 
 On first launch, a settings window will open. You'll need:
 
-- **Print token** — found in your Menus dashboard under **Printer → Network**
+- **Print token** — found in your Menus dashboard under **Mobile App → Print Bridge**
 - **Printer type** — thermal (ESC/POS over network) or a system printer
 - **Paper width** — 58mm (32 chars) or 80mm (48 chars)
 
-Config is saved to `~/.menus-bridge.json`.
+Config is saved to `~/.config/menus-print-bridge/config.json` (or the platform equivalent of Electron's `userData` directory).
 
 ---
 
 ## Auto-start
 
-To start the bridge automatically when your computer boots:
-
-```bash
-node install-autostart.js
-```
-
-This installs a systemd service (Linux), LaunchAgent (macOS), or Task Scheduler entry (Windows).
+The bridge registers itself to start at login on first launch — login item on Windows/macOS, XDG autostart entry on Linux. No manual setup needed.
 
 ---
 
 ## Development
 
 ```bash
-npm run dev        # Electron with DevTools
-npm run build      # Package for current platform
+npx electron . --no-sandbox   # run in dev
+./build.sh linux              # package (also: mac, win)
 ```
 
 ---
