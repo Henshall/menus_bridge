@@ -67,6 +67,14 @@ ipcMain.handle('get-version', () => app.getVersion());
 
 ipcMain.handle('get-printers', async () => bridge.listPrinters());
 
+ipcMain.handle('scan-network', async (_, port) => {
+    try {
+        return { ok: true, printers: await bridge.scanNetwork(port || 9100) };
+    } catch (e) {
+        return { ok: false, error: e.message };
+    }
+});
+
 function saveAndRestart(cfg) {
     if (JSON.stringify(cfg) === JSON.stringify(loadConfig())) return; // unchanged — don't restart the poll loop
     saveConfig(cfg);

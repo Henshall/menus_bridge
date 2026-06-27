@@ -148,6 +148,13 @@
   </div>
 
   <div id="thermal-fields" style="display:none;">
+    <div class="field">
+      <button class="btn-secondary" id="btn-scan" type="button" onclick="scanNetwork()">🔍 Scan for printers</button>
+      <div id="scan-results" style="display:none;margin-top:10px;"></div>
+    </div>
+    <div class="field" style="margin-top:14px;">
+      <label id="lbl-thermal-manual">Or enter the IP manually</label>
+    </div>
     <div class="ip-row">
       <div class="field">
         <label id="lbl-thermal-ip">Printer IP address</label>
@@ -171,6 +178,15 @@
       <option value="48" selected>80mm thermal — full width (48 chars)</option>
       <option value="64">A4/Letter — system printer (64 chars)</option>
     </select>
+  </div>
+
+  <div class="field">
+    <label id="lbl-trigger">Print when</label>
+    <select id="trigger" onchange="autoSave()">
+      <option value="arrival" id="opt-trigger-arrival">Order arrives</option>
+      <option value="accept"  id="opt-trigger-accept">Order is accepted</option>
+    </select>
+    <div class="hint" id="lbl-trigger-hint">Scheduled orders always print about 20 minutes before they are due.</div>
   </div>
 
   <div class="btn-row">
@@ -198,6 +214,11 @@ const UI = {
     printerType: 'Printer type', typeSystem: 'System printer', typeThermal: 'Thermal (ESC/POS)',
     thermalIp: 'Printer IP address', thermalPort: 'Port',
     thermalHint: 'Connect your thermal printer via Ethernet or WiFi. Default port is 9100.',
+    scanBtn: 'Scan for printers', scanning: 'Scanning the network…',
+    scanFound: ':count found - tap one to use it', scanNone: 'No printers found - enter the IP manually below',
+    thermalManual: 'Or enter the IP manually',
+    trigger: 'Print when', triggerArrival: 'Order arrives', triggerAccept: 'Order is accepted',
+    triggerHint: 'Scheduled orders always print about 20 minutes before they are due.',
     printer: 'Printer', defaultPrinter: 'System default printer',
     width: 'Paper width', format: 'Print format',
     testBtn: 'Test Token & Print', verifying: 'Verifying…', printing: 'Printing…',
@@ -212,6 +233,11 @@ const UI = {
     printerType: 'Tipo de impresora', typeSystem: 'Impresora del sistema', typeThermal: 'Térmica (ESC/POS)',
     thermalIp: 'Dirección IP de la impresora', thermalPort: 'Puerto',
     thermalHint: 'Conecta tu impresora térmica por Ethernet o WiFi. El puerto predeterminado es 9100.',
+    scanBtn: 'Buscar impresoras', scanning: 'Buscando en la red…',
+    scanFound: ':count encontradas - toca una para usarla', scanNone: 'No se encontraron impresoras - introduce la IP manualmente abajo',
+    thermalManual: 'O introduce la IP manualmente',
+    trigger: 'Imprimir cuando', triggerArrival: 'Llega el pedido', triggerAccept: 'Se acepta el pedido',
+    triggerHint: 'Los pedidos programados se imprimen unos 20 minutos antes de su hora.',
     printer: 'Impresora', defaultPrinter: 'Impresora predeterminada del sistema',
     width: 'Ancho del papel', format: 'Formato de impresión',
     testBtn: 'Probar token e imprimir', verifying: 'Verificando…', printing: 'Imprimiendo…',
@@ -226,6 +252,11 @@ const UI = {
     printerType: 'Tipo de impressora', typeSystem: 'Impressora do sistema', typeThermal: 'Térmica (ESC/POS)',
     thermalIp: 'Endereço IP da impressora', thermalPort: 'Porta',
     thermalHint: 'Conecte sua impressora térmica via Ethernet ou WiFi. A porta padrão é 9100.',
+    scanBtn: 'Procurar impressoras', scanning: 'Procurando na rede…',
+    scanFound: ':count encontradas - toque numa para usar', scanNone: 'Nenhuma impressora encontrada - insira o IP manualmente abaixo',
+    thermalManual: 'Ou insira o IP manualmente',
+    trigger: 'Imprimir quando', triggerArrival: 'O pedido chega', triggerAccept: 'O pedido é aceito',
+    triggerHint: 'Pedidos agendados são impressos cerca de 20 minutos antes da hora.',
     printer: 'Impressora', defaultPrinter: 'Impressora padrão do sistema',
     width: 'Largura do papel', format: 'Formato de impressão',
     testBtn: 'Testar token e imprimir', verifying: 'Verificando…', printing: 'Imprimindo…',
@@ -240,6 +271,11 @@ const UI = {
     printerType: "Type d'imprimante", typeSystem: 'Imprimante système', typeThermal: 'Thermique (ESC/POS)',
     thermalIp: "Adresse IP de l'imprimante", thermalPort: 'Port',
     thermalHint: 'Connectez votre imprimante thermique via Ethernet ou WiFi. Le port par défaut est 9100.',
+    scanBtn: 'Rechercher des imprimantes', scanning: 'Analyse du réseau…',
+    scanFound: ':count trouvées - touchez-en une pour l\'utiliser', scanNone: 'Aucune imprimante trouvée - saisissez l\'IP manuellement ci-dessous',
+    thermalManual: 'Ou saisissez l\'IP manuellement',
+    trigger: 'Imprimer quand', triggerArrival: 'La commande arrive', triggerAccept: 'La commande est acceptée',
+    triggerHint: 'Les commandes programmées s\'impriment environ 20 minutes avant l\'heure prévue.',
     printer: 'Imprimante', defaultPrinter: 'Imprimante par défaut du système',
     width: 'Largeur du papier', format: "Format d'impression",
     testBtn: 'Tester le token et imprimer', verifying: 'Vérification…', printing: 'Impression…',
@@ -254,6 +290,11 @@ const UI = {
     printerType: 'Druckertyp', typeSystem: 'Systemdrucker', typeThermal: 'Thermo (ESC/POS)',
     thermalIp: 'IP-Adresse des Druckers', thermalPort: 'Port',
     thermalHint: 'Thermodrucker über Ethernet oder WLAN verbinden. Standardport ist 9100.',
+    scanBtn: 'Drucker suchen', scanning: 'Netzwerk wird durchsucht…',
+    scanFound: ':count gefunden - zum Verwenden antippen', scanNone: 'Keine Drucker gefunden - IP unten manuell eingeben',
+    thermalManual: 'Oder IP manuell eingeben',
+    trigger: 'Drucken wenn', triggerArrival: 'Bestellung eingeht', triggerAccept: 'Bestellung angenommen wird',
+    triggerHint: 'Geplante Bestellungen werden etwa 20 Minuten vor dem Termin gedruckt.',
     printer: 'Drucker', defaultPrinter: 'Systemstandarddrucker',
     width: 'Papierbreite', format: 'Druckformat',
     testBtn: 'Token testen & drucken', verifying: 'Überprüfung…', printing: 'Drucken…',
@@ -268,6 +309,11 @@ const UI = {
     printerType: "Tipus d'impressora", typeSystem: 'Impressora del sistema', typeThermal: 'Tèrmica (ESC/POS)',
     thermalIp: "Adreça IP de la impressora", thermalPort: 'Port',
     thermalHint: 'Connecta la impressora tèrmica per Ethernet o WiFi. El port predeterminat és 9100.',
+    scanBtn: 'Cercar impressores', scanning: 'Cercant a la xarxa…',
+    scanFound: ':count trobades - toca\'n una per fer-la servir', scanNone: 'No s\'han trobat impressores - introdueix la IP manualment a sota',
+    thermalManual: 'O introdueix la IP manualment',
+    trigger: 'Imprimir quan', triggerArrival: 'Arriba la comanda', triggerAccept: 'S\'accepta la comanda',
+    triggerHint: 'Les comandes programades s\'imprimeixen uns 20 minuts abans de l\'hora.',
     printer: 'Impressora', defaultPrinter: 'Impressora predeterminada del sistema',
     width: 'Amplada del paper', format: "Format d'impressió",
     testBtn: 'Provar token i imprimir', verifying: 'Verificant…', printing: 'Imprimint…',
@@ -282,6 +328,11 @@ const UI = {
     printerType: 'نوع الطابعة', typeSystem: 'طابعة النظام', typeThermal: 'حرارية (ESC/POS)',
     thermalIp: 'عنوان IP للطابعة', thermalPort: 'المنفذ',
     thermalHint: 'وصّل الطابعة الحرارية عبر إيثرنت أو واي فاي. المنفذ الافتراضي 9100.',
+    scanBtn: 'البحث عن الطابعات', scanning: 'جارٍ البحث في الشبكة…',
+    scanFound: ':count تم العثور عليها - اضغط على واحدة لاستخدامها', scanNone: 'لم يتم العثور على طابعات - أدخل عنوان IP يدوياً أدناه',
+    thermalManual: 'أو أدخل عنوان IP يدوياً',
+    trigger: 'اطبع عندما', triggerArrival: 'يصل الطلب', triggerAccept: 'يتم قبول الطلب',
+    triggerHint: 'الطلبات المجدولة تُطبع قبل موعدها بحوالي 20 دقيقة.',
     printer: 'الطابعة', defaultPrinter: 'الطابعة الافتراضية للنظام',
     width: 'عرض الورق', format: 'تنسيق الطباعة',
     testBtn: 'اختبار الرمز والطباعة', verifying: 'جارٍ التحقق…', printing: 'جارٍ الطباعة…',
@@ -296,6 +347,11 @@ const UI = {
     printerType: '打印机类型', typeSystem: '系统打印机', typeThermal: '热敏 (ESC/POS)',
     thermalIp: '打印机 IP 地址', thermalPort: '端口',
     thermalHint: '通过以太网或 WiFi 连接热敏打印机。默认端口为 9100。',
+    scanBtn: '扫描打印机', scanning: '正在扫描网络…',
+    scanFound: '找到 :count 台 - 点按一台使用', scanNone: '未找到打印机 - 请在下方手动输入 IP',
+    thermalManual: '或手动输入 IP',
+    trigger: '打印时机', triggerArrival: '订单到达时', triggerAccept: '订单被接受时',
+    triggerHint: '预约订单将在预定时间前约 20 分钟打印。',
     printer: '打印机', defaultPrinter: '系统默认打印机',
     width: '纸张宽度', format: '打印格式',
     testBtn: '测试令牌并打印', verifying: '验证中…', printing: '打印中…',
@@ -384,6 +440,12 @@ function applyLang(lang) {
   document.getElementById('lbl-thermal-ip').textContent      = t.thermalIp;
   document.getElementById('lbl-thermal-port').textContent    = t.thermalPort;
   document.getElementById('lbl-thermal-hint').textContent    = t.thermalHint;
+  document.getElementById('btn-scan').textContent            = '🔍 ' + t.scanBtn;
+  document.getElementById('lbl-thermal-manual').textContent  = t.thermalManual;
+  document.getElementById('lbl-trigger').textContent         = t.trigger;
+  document.getElementById('opt-trigger-arrival').textContent = t.triggerArrival;
+  document.getElementById('opt-trigger-accept').textContent  = t.triggerAccept;
+  document.getElementById('lbl-trigger-hint').textContent    = t.triggerHint;
   document.getElementById('lbl-printer').textContent         = t.printer;
   document.getElementById('lbl-default-printer').textContent = t.defaultPrinter;
   document.getElementById('lbl-width').textContent           = t.width;
@@ -408,6 +470,7 @@ async function init() {
   if (cfg.thermalIp)   document.getElementById('thermalIp').value   = cfg.thermalIp;
   if (cfg.thermalPort) document.getElementById('thermalPort').value = cfg.thermalPort;
   if (cfg.printFormat) document.getElementById('printFormat').value = cfg.printFormat;
+  if (cfg.trigger)     document.getElementById('trigger').value     = cfg.trigger;
   if (cfg.printerType) setPrinterType(cfg.printerType);
 
   // Windows can only render plain text (Out-Printer) — PostScript would
@@ -436,6 +499,7 @@ function currentCfg() {
     lang:        currentLang,
     printerType: currentPrinterType,
     printFormat: document.getElementById('printFormat').value,
+    trigger:     document.getElementById('trigger').value,
     thermalIp:   document.getElementById('thermalIp').value.trim(),
     thermalPort: parseInt(document.getElementById('thermalPort').value) || 9100,
   };
@@ -484,6 +548,52 @@ async function testTokenAndPrint() {
   if (!result.ok) {
     setStatus('err', null, t.testFail + result.error);
   }
+}
+
+// Scan the LAN for thermal printers listening on the chosen port (default
+// 9100). Discovered IPs render as tappable buttons; manual entry stays as the
+// fallback. The port input is reused so a non-standard raw-print port still
+// scans correctly.
+async function scanNetwork() {
+  const t = UI[currentLang] || UI.en;
+  const btn = document.getElementById('btn-scan');
+  const port = parseInt(document.getElementById('thermalPort').value, 10) || 9100;
+  btn.disabled = true;
+  btn.textContent = '🔍 ' + t.scanning;
+  try {
+    const r = await ipcRenderer.invoke('scan-network', port);
+    const ips = (r && r.ok && Array.isArray(r.printers)) ? r.printers : [];
+    renderScanResults(ips);
+    appendLog(ips.length ? t.scanFound.replace(':count', ips.length) : t.scanNone);
+  } catch (e) {
+    renderScanResults([]);
+    appendLog('Scan failed: ' + (e && e.message ? e.message : e));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔍 ' + t.scanBtn;
+  }
+}
+
+function renderScanResults(ips) {
+  const box = document.getElementById('scan-results');
+  box.innerHTML = '';
+  if (!ips.length) { box.style.display = 'none'; return; }
+  ips.forEach(ip => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn-secondary';
+    b.style.cssText = 'display:block;width:100%;margin-bottom:6px;text-align:left;';
+    b.textContent = '🖨 ' + ip;
+    b.onclick = () => {
+      document.getElementById('thermalIp').value = ip;
+      box.querySelectorAll('button').forEach(x => { x.style.background = ''; x.style.color = ''; });
+      b.style.background = '#1a7a4c';
+      b.style.color = '#fff';
+      autoSave();
+    };
+    box.appendChild(b);
+  });
+  box.style.display = '';
 }
 
 function setStatus(type, key, text) {

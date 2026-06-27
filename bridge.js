@@ -241,6 +241,120 @@ function escpos(orderOrText, cols = 32, lang = 'en') {
     return Buffer.concat(parts);
 }
 
+// ── LAN printer discovery ───────────────────────────────────────────────────
+// Mirrors the staff Android app: sweep the local /24 for hosts that accept a
+// TCP connection on the raw-print port (9100 by default). Cheap thermal
+// printers don't reliably advertise over mDNS/Bonjour, so an open socket on
+// the JetDirect port is the most dependable "is this a printer" signal. The
+// sweep is bounded (clamped to /24 = 254 hosts) with short per-host timeouts
+// and a hard overall deadline so it can never hang the settings window.
+const SCAN_TIMEOUT_MS = 300;  // per-host connect timeout
+const SCAN_CONCURRENCY = 64;  // parallel probes
+const SCAN_TOTAL_MS   = 6000; // hard cap on the whole sweep
+
+function ipToLong(ip) {
+    const p = String(ip).split('.').map(n => parseInt(n, 10) & 0xff);
+    return ((p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3]) >>> 0;
+}
+
+function longToIp(v) {
+    return [(v >>> 24) & 0xff, (v >>> 16) & 0xff, (v >>> 8) & 0xff, v & 0xff].join('.');
+}
+
+// Count the set bits of a dotted netmask (255.255.255.0 -> 24).
+function maskToPrefix(netmask) {
+    return (ipToLong(netmask).toString(2).match(/1/g) || []).length;
+}
+
+// Enumerate the usable host IPs of the subnet that `address` lives on. The
+// sweep is clamped to a /24 (254 hosts) so a wide LAN - e.g. a /16 - can never
+// explode into a 65k-host scan. The network and broadcast addresses are
+// excluded. A missing/invalid netmask falls back to /24.
+function subnetHosts(address, netmask) {
+    let prefix = netmask ? maskToPrefix(netmask) : 24;
+    if (prefix < 24) prefix = 24;
+    if (prefix > 32) prefix = 32;
+    const mask      = (0xFFFFFFFF << (32 - prefix)) >>> 0;
+    const network   = (ipToLong(address) & mask) >>> 0;
+    const broadcast = (network | (~mask >>> 0)) >>> 0;
+    const hosts = [];
+    for (let h = network + 1; h < broadcast; h++) hosts.push(longToIp(h >>> 0));
+    return hosts;
+}
+
+// Every non-internal IPv4 interface. `family` is the string 'IPv4' on current
+// Node, but tolerate the numeric 4 form some builds emit too.
+function localIPv4Interfaces() {
+    const out = [];
+    const ifaces = os.networkInterfaces();
+    for (const name of Object.keys(ifaces)) {
+        for (const ni of ifaces[name] || []) {
+            if ((ni.family === 'IPv4' || ni.family === 4) && !ni.internal) out.push(ni);
+        }
+    }
+    return out;
+}
+
+// Union of the /24-clamped host lists across every active LAN interface, with
+// duplicates removed. Scanning every interface (not just the first) is what
+// makes discovery reliable on Windows and macOS, where a machine commonly has
+// several IPv4 adapters at once - Wi-Fi + Ethernet, plus virtual ones from
+// VMs, WSL, VirtualBox/VMware or a VPN. Guessing a single interface could
+// sweep the wrong subnet and miss the printer; the union finds it on whichever
+// NIC is the real LAN. Still bounded: each interface contributes at most 254
+// hosts and the overall sweep is capped by SCAN_TOTAL_MS.
+function discoveryHosts(interfaces) {
+    const seen = new Set();
+    const hosts = [];
+    for (const ni of interfaces) {
+        for (const ip of subnetHosts(ni.address, ni.netmask)) {
+            if (!seen.has(ip)) { seen.add(ip); hosts.push(ip); }
+        }
+    }
+    return hosts;
+}
+
+async function scanNetwork(port = 9100) {
+    const p = parseInt(port, 10);
+    port = (p >= 1 && p <= 65535) ? p : 9100;
+
+    const hostIps = discoveryHosts(localIPv4Interfaces());
+    if (!hostIps.length) return [];
+
+    const found = [];
+    const deadline = Date.now() + SCAN_TOTAL_MS;
+    let idx = 0;
+
+    const probe = ip => new Promise(resolve => {
+        const sock = new net.Socket();
+        let done = false;
+        const finish = ok => {
+            if (done) return;
+            done = true;
+            try { sock.destroy(); } catch {}
+            if (ok) found.push(ip);
+            resolve();
+        };
+        sock.setTimeout(SCAN_TIMEOUT_MS);
+        sock.once('connect', () => finish(true));
+        sock.once('timeout', () => finish(false));
+        sock.once('error',   () => finish(false));
+        try { sock.connect(port, ip); } catch { finish(false); }
+    });
+
+    const worker = async () => {
+        while (idx < hostIps.length && Date.now() < deadline) {
+            await probe(hostIps[idx++]);
+        }
+    };
+    const workers = [];
+    for (let i = 0; i < SCAN_CONCURRENCY; i++) workers.push(worker());
+    await Promise.all(workers);
+
+    found.sort((a, b) => ipToLong(a) - ipToLong(b));
+    return found;
+}
+
 function printThermal(data, ip, port = 9100) {
     return new Promise((resolve, reject) => {
         const sock = new net.Socket();
@@ -305,11 +419,19 @@ async function printText(text, printerName) {
 // 60s) instead of on every 4s poll, so a broken printer doesn't spam retries.
 const retryState = new Map(); // order.id -> { failures, nextAttempt }
 
+// 'accept' holds the ticket until staff accept the order (the server excludes
+// pending); anything else (default) prints on arrival. Mirrors the staff KDS
+// trigger. The server's withinKitchenWindow gate applies either way, so
+// scheduled orders still only surface ~20 min before they're due.
+function triggerQuery(cfg) {
+    return cfg && cfg.trigger === 'accept' ? '?trigger=accept' : '';
+}
+
 async function poll(cfg, onPrinted, onError, onOk) {
     const apiBase = cfg.apiUrl || DEFAULT_API;
     let res;
     try {
-        res = await fetch(`${apiBase}/print-queue`, {
+        res = await fetch(`${apiBase}/print-queue${triggerQuery(cfg)}`, {
             headers: { Authorization: `Bearer ${cfg.token}`, Accept: 'application/json' },
             timeout: 20000,
         });
@@ -368,4 +490,11 @@ async function poll(cfg, onPrinted, onError, onOk) {
     }
 }
 
-module.exports = { listPrinters, buildReceipt, buildReceiptPS, buildTestReceipt, printText, printThermal, escpos, poll, wantsPS };
+module.exports = {
+    listPrinters, scanNetwork, buildReceipt, buildReceiptPS, buildTestReceipt,
+    printText, printThermal, escpos, poll, wantsPS,
+    // exported for unit tests
+    ipToLong, longToIp, maskToPrefix, subnetHosts, triggerQuery,
+    localIPv4Interfaces, discoveryHosts,
+    charWidth, strWidth, truncToWidth, center, row, printableLang, runCommand,
+};
